@@ -73,6 +73,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         }
 
         if (executor == null) {
+            // ThreadPerTaskExecutor 线程执行器，每次执行创建一个线程实体
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
 
@@ -107,7 +108,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
                 }
             }
         }
-
+        // 线程选择器
         chooser = chooserFactory.newChooser(children);
 
         final FutureListener<Object> terminationListener = new FutureListener<Object>() {

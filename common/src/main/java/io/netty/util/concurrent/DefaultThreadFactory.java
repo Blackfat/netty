@@ -127,6 +127,7 @@ public class DefaultThreadFactory implements ThreadFactory {
     }
 
     protected Thread newThread(Runnable r, String name) {
+        // netty底层的thread
         return new FastThreadLocalThread(threadGroup, r, name);
     }
 

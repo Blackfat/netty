@@ -145,6 +145,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             throw new NullPointerException("selectStrategy");
         }
         provider = selectorProvider;
+        // 可以轮训注册上去的连接
         selector = openSelector();
         selectStrategy = strategy;
     }
@@ -436,6 +437,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
                 cancelledKeys = 0;
                 needsToSelectAgain = false;
+                // 处理io事件和运行任务的时间比
                 final int ioRatio = this.ioRatio;
                 if (ioRatio == 100) {
                     try {

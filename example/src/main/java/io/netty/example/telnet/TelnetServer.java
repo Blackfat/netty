@@ -44,6 +44,7 @@ public final class TelnetServer {
         }
 
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+        // 默认线程数是2倍的cpu核数
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
             ServerBootstrap b = new ServerBootstrap();
