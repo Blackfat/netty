@@ -237,8 +237,10 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             final Channel child = (Channel) msg;
 
+            // 添加handler
             child.pipeline().addLast(childHandler);
 
+            // childOptions 底层tcp
             for (Entry<ChannelOption<?>, Object> e: childOptions) {
                 try {
                     if (!child.config().setOption((ChannelOption<Object>) e.getKey(), e.getValue())) {
@@ -249,11 +251,13 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 }
             }
 
+            // childAttrs channel私有属性
             for (Entry<AttributeKey<?>, Object> e: childAttrs) {
                 child.attr((AttributeKey<Object>) e.getKey()).set(e.getValue());
             }
 
             try {
+                // 绑定到work NioEventLoop中，并注册到NioEventLoop的selector，开始监听READ事件
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
