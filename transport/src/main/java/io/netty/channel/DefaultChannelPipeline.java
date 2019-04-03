@@ -89,7 +89,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         succeededFuture = new SucceededChannelFuture(channel, null);
         voidPromise =  new VoidChannelPromise(channel, true);
 
+        // InboundHandler
         tail = new TailContext(this);
+        // OutboundHandler
         head = new HeadContext(this);
 
         head.next = tail;
@@ -196,10 +198,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     public final ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler) {
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
+            // 判断是否重复添加
             checkMultiplicity(handler);
 
+            // 封装成ChannelHandlerContext
             newCtx = newContext(group, filterName(name, handler), handler);
 
+            // 添加至双向链表尾部
             addLast0(newCtx);
 
             // If the registered is false it means that the channel was not registered on an eventloop yet.
@@ -217,6 +222,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
+                        // 回调用户方法  ChannelInitializer 中handlerAdded
                         callHandlerAdded0(newCtx);
                     }
                 });
@@ -459,6 +465,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
+                        // 回调删除事件
                         callHandlerRemoved0(ctx);
                     }
                 });
@@ -583,6 +590,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private static void checkMultiplicity(ChannelHandler handler) {
         if (handler instanceof ChannelHandlerAdapter) {
             ChannelHandlerAdapter h = (ChannelHandlerAdapter) handler;
+            // 非共享handle
             if (!h.isSharable() && h.added) {
                 throw new ChannelPipelineException(
                         h.getClass().getName() +
