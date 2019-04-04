@@ -237,6 +237,10 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator {
         return chunkSize;
     }
 
+    /*
+    * 默认heapArena，directArenas数据是2倍的cpu核心数，和NioEventLoop默认数量一致，能够保证每个NioEventLoop能够分配一个
+    * heapArena，directArenas，保证内存分配安全
+    * */
     @Override
     protected ByteBuf newHeapBuffer(int initialCapacity, int maxCapacity) {
         PoolThreadCache cache = threadCache.get();

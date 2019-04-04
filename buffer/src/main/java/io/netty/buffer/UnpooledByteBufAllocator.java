@@ -54,12 +54,23 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator {
         this.disableLeakDetector = disableLeakDetector;
     }
 
+
+    /*
+    *  HeapBuffer底层通过数组存放数据
+    * 通过系统自动判断是否通过Unsafe方法获取数据
+    * 非Unsafe通过数据下标获取数据，Unsafe通过Unsafe方法获取数据
+    * */
     @Override
     protected ByteBuf newHeapBuffer(int initialCapacity, int maxCapacity) {
         return PlatformDependent.hasUnsafe() ? new UnpooledUnsafeHeapByteBuf(this, initialCapacity, maxCapacity)
                 : new UnpooledHeapByteBuf(this, initialCapacity, maxCapacity);
     }
 
+    /*
+    *DirectBuffer底层通过jdk的ByteBuffer.allocateDirect分配内存
+    *通过系统自动判断是否通过Unsafe方法获取数据
+    *非Unsafe通过jdk底层方法获取数据，Unsafe通过内存地址加偏移量获取数据
+    * */
     @Override
     protected ByteBuf newDirectBuffer(int initialCapacity, int maxCapacity) {
         ByteBuf buf = PlatformDependent.hasUnsafe() ?
