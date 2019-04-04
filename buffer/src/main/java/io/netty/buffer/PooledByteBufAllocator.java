@@ -238,7 +238,8 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator {
     }
 
     /*
-    * 默认heapArenas，directArenas 数组大小是2倍的cpu核心数，和NioEventLoop默认数量一致，能够保证每个NioEventLoop能够分配一个
+    *  netty池化内存分配在Arena上进行
+    * 默认heapArenas，directArenas 数组大小是2倍的cpu核心数，和NioEventLoop默认数量一致，通过PoolThreadLocalCache能够保证每个NioEventLoop能够分配一个
     * heapArena，directArena，保证内存分配安全
     * */
     @Override
