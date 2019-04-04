@@ -168,6 +168,9 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
             final long handle = this.handle;
             this.handle = -1;
             memory = null;
+            // 连续的内存区别加载到缓存
+            // 标记连续内存区段为未使用
+            // ByteBuf添加到对象池
             chunk.arena.free(chunk, handle, maxLength, cache);
             recycle();
         }

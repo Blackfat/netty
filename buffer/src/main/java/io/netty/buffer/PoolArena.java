@@ -137,7 +137,9 @@ abstract class PoolArena<T> implements PoolArenaMetric {
     abstract boolean isDirect();
 
     PooledByteBuf<T> allocate(PoolThreadCache cache, int reqCapacity, int maxCapacity) {
+        // 获取一个buf对象
         PooledByteBuf<T> buf = newByteBuf(maxCapacity);
+        // 分配内存地址
         allocate(cache, buf, reqCapacity);
         return buf;
     }
@@ -166,6 +168,15 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         return (normCapacity & 0xFFFFFE00) == 0;
     }
 
+    /*
+    *0-512B tiny
+    *
+    *512B-8K small (subpage)
+    *
+    *8K(page)-16M normal
+    *
+    *16M(chunk)- huge
+    * */
     private void allocate(PoolThreadCache cache, PooledByteBuf<T> buf, final int reqCapacity) {
         final int normCapacity = normalizeCapacity(reqCapacity);
         if (isTinyOrSmall(normCapacity)) { // capacity < pageSize
@@ -226,6 +237,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
     }
 
     private synchronized void allocateNormal(PooledByteBuf<T> buf, int reqCapacity, int normCapacity) {
+        // 尝试在现有的chunk上进行分配
         if (q050.allocate(buf, reqCapacity, normCapacity) || q025.allocate(buf, reqCapacity, normCapacity) ||
             q000.allocate(buf, reqCapacity, normCapacity) || qInit.allocate(buf, reqCapacity, normCapacity) ||
             q075.allocate(buf, reqCapacity, normCapacity)) {
@@ -234,6 +246,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         }
 
         // Add a new chunk.
+        // 创建一个chunk进行分配 8k 11 13 16
         PoolChunk<T> c = newChunk(pageSize, maxOrder, pageShifts, chunkSize);
         long handle = c.allocate(normCapacity);
         ++allocationsNormal;

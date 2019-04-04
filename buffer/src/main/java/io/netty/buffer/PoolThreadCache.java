@@ -83,12 +83,15 @@ final class PoolThreadCache {
         this.heapArena = heapArena;
         this.directArena = directArena;
         if (directArena != null) {
+            // 32个节点，每个节点是不同内存规格的一个队列，队列最大长度512
             tinySubPageDirectCaches = createSubPageCaches(
                     tinyCacheSize, PoolArena.numTinySubpagePools, SizeClass.Tiny);
+            // 4个节点，每个节点是不同内存规格的一个队列，队列最大长度256
             smallSubPageDirectCaches = createSubPageCaches(
                     smallCacheSize, directArena.numSmallSubpagePools, SizeClass.Small);
 
             numShiftsNormalDirect = log2(directArena.pageSize);
+            // 32个节点，每个节点是不同内存规格的一个队列，队列最大长度64
             normalDirectCaches = createNormalCaches(
                     normalCacheSize, maxCachedBufferCapacity, directArena);
 
@@ -300,6 +303,9 @@ final class PoolThreadCache {
         cache.trim();
     }
 
+    /*
+    * 找到对应size的MemoryRegionCache
+    * */
     private MemoryRegionCache<?> cacheForTiny(PoolArena<?> area, int normCapacity) {
         int idx = PoolArena.tinyIdx(normCapacity);
         if (area.isDirect()) {
@@ -403,7 +409,9 @@ final class PoolThreadCache {
             if (entry == null) {
                 return false;
             }
+            // 从queue中弹出一个entry给buf初始化
             initBuf(entry.chunk, entry.handle, buf, reqCapacity);
+            // entry复用
             entry.recycle();
 
             // allocations is not thread-safe which is fine as this is only called from the same thread all time.
@@ -459,7 +467,7 @@ final class PoolThreadCache {
         static final class Entry<T> {
             final Handle<Entry<?>> recyclerHandle;
             PoolChunk<T> chunk;
-            long handle = -1;
+            long handle = -1;// 指向chunk中连续的内存地址
 
             Entry(Handle<Entry<?>> recyclerHandle) {
                 this.recyclerHandle = recyclerHandle;
