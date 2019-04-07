@@ -145,7 +145,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             throw new NullPointerException("selectStrategy");
         }
         provider = selectorProvider;
-        // 可以轮训注册上去的连接
+        // 可以轮询注册上去的连接
         selector = openSelector();
         selectStrategy = strategy;
     }
