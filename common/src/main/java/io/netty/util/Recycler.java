@@ -103,9 +103,13 @@ public abstract class Recycler<T> {
         INITIAL_CAPACITY = min(DEFAULT_MAX_CAPACITY_PER_THREAD, 256);
     }
 
+    // 32768
     private final int maxCapacityPerThread;
+    // 2
     private final int maxSharedCapacityFactor;
+    // 8
     private final int ratioMask;
+    // cpu核心数*2
     private final int maxDelayedQueuesPerThread;
 
     private final FastThreadLocal<Stack<T>> threadLocal = new FastThreadLocal<Stack<T>>() {
@@ -249,6 +253,10 @@ public abstract class Recycler<T> {
         private WeakOrderQueue(Stack<?> stack, Thread thread) {
             head = tail = new Link();
             owner = new WeakReference<Thread>(thread);
+            /**
+             * 每次创建WeakOrderQueue时会更新WeakOrderQueue所属的stack的head为当前WeakOrderQueue， 当前WeakOrderQueue的next为stack的之前head，
+             * 这样把该stack的WeakOrderQueue通过链表串起来了，当下次stack中没有可用对象需要从WeakOrderQueue中转移对象时从WeakOrderQueue链表的head进行scavenge转移到stack的对DefaultHandle数组。
+             */
             synchronized (stack) {
                 next = stack.head;
                 stack.head = this;
@@ -265,6 +273,7 @@ public abstract class Recycler<T> {
          */
         static WeakOrderQueue allocate(Stack<?> stack, Thread thread) {
             // We allocated a Link so reserve the space
+            // 当前stack的共享空间是否能够再容下一个WeakOrderQueue
             return reserveSpace(stack.availableSharedCapacity, LINK_CAPACITY)
                     ? new WeakOrderQueue(stack, thread) : null;
         }
@@ -449,6 +458,7 @@ public abstract class Recycler<T> {
         DefaultHandle<T> pop() {
             int size = this.size;
             if (size == 0) {
+                // 从其他线程回收的对象收割到本线程的stack
                 if (!scavenge()) {
                     return null;
                 }
@@ -490,12 +500,14 @@ public abstract class Recycler<T> {
             boolean success = false;
             WeakOrderQueue prev = this.prev;
             do {
+                // 每次转移一个link的handle对象
                 if (cursor.transfer(this)) {
                     success = true;
                     break;
                 }
 
                 WeakOrderQueue next = cursor.next;
+                // WeakOrderQueue所属于的thread已经不存在
                 if (cursor.owner.get() == null) {
                     // If the thread associated with the queue is gone, unlink it, after
                     // performing a volatile read to confirm there is no data left to collect.
@@ -560,11 +572,18 @@ public abstract class Recycler<T> {
             // we don't want to have a ref to the queue as the value in our weak map
             // so we null it out; to ensure there are no races with restoring it later
             // we impose a memory ordering here (no-op on x86)
+            /**
+             * Recycler有1个stack->WeakOrderQueue映射，每个stack会映射到1个WeakOrderQueue，这个WeakOrderQueue是该stack关联的其它线程WeakOrderQueue链表的head WeakOrderQueue。
+             * 当其它线程回收对象到该stack时会创建1个WeakOrderQueue中并加到stack的WeakOrderQueue链表中。
+             */
             Map<Stack<?>, WeakOrderQueue> delayedRecycled = DELAYED_RECYCLED.get();
             WeakOrderQueue queue = delayedRecycled.get(this);
             if (queue == null) {
                 if (delayedRecycled.size() >= maxDelayedQueues) {
                     // Add a dummy queue so we know we should drop the object
+                    /**
+                     * 如果delayedRecycled满了那么将1个伪造的WeakOrderQueue（DUMMY）放到delayedRecycled中，并丢弃该对象（DefaultHandle）
+                     */
                     delayedRecycled.put(this, WeakOrderQueue.DUMMY);
                     return;
                 }
